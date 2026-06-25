@@ -8,51 +8,92 @@ import streamlit as st
 from openai import OpenAI
 import io
 
-# محاولة جلب المفتاح بكل الطرق المتاحة في السيكرتس
+# جلب أداة التعامل مع اليوتيوب والفيديوهات (تأكد من إضافتها في requirements)
+try:
+    import yt_dlp
+except ImportError:
+    st.error("يرجى إضافة yt_dlp إلى ملف requirements.txt الخاص بك")
+
+# محاولة جلب المفتاح من الـ Secrets
 MY_API_KEY = ""
 if "OPENAI_API_KEY" in st.secrets:
     MY_API_KEY = st.secrets["OPENAI_API_KEY"]
-elif "openai_api_key" in st.secrets:
-    MY_API_KEY = st.secrets["openai_api_key"]
-elif "some_key" in st.secrets:
-    MY_API_KEY = st.secrets["some_key"]
 
-# التحقق من المفتاح وتنبيهك فقط بدون إيقاف الموقع للطلاب
 if not MY_API_KEY:
-    st.info("💡 لم يتم العثور على المفتاح السري في إعدادات Secrets حتى الآن. يرجى التأكد من كتابة OPENAI_API_KEY داخل صفحة (زكرت).")
+    st.info("💡 يرجى التأكد من ضبط مفتاح OPENAI_API_KEY داخل صفحة (Secrets) في المنصة.")
 
-# ربط العميل بالمفتاح المباشر
+# ربط العميل بالمفتاح
 client = OpenAI(api_key=MY_API_KEY if MY_API_KEY else "sk-dummy")
 
-st.title("MP3 Summarizer")
+st.title("📹 Video & YouTube Summarizer")
+st.write("أهلاً بك! يمكنك رفع ملف فيديو MP4 أو وضع رابط فيديو (يوتيوب أو غيره) لتلخيصه مباشرة.")
 
-audio_file = st.file_uploader(
-    "Choose MP3 File",
-    type=["mp3"]
-)
+# خيارات الإدخال للمستخدم
+option = st.radio("اختر طريقة إدخال الفيديو:", ("رفع ملف فيديو (MP4)", "وضع رابط فيديو (YouTube / URL)"))
 
-if audio_file:
+audio_buffer = None
+file_name = ""
+
+# --- الخيار الأول: رفع ملف ---
+if option == "رفع ملف فيديو (MP4)":
+    video_file = st.file_uploader("اختر ملف فيديو MP4", type=["mp4"])
+    if video_file:
+        audio_buffer = io.BytesIO(video_file.read())
+        audio_buffer.name = "video.mp4"
+        file_name = video_file.name
+
+# --- الخيار الثاني: وضع رابط ---
+elif option == "وضع رابط فيديو (YouTube / URL)":
+    video_url = st.text_input("أدخل رابط الفيديو هنا (مثال: رابط يوتيوب):")
+    if video_url:
+        with st.spinner("جاري جلب بيانات الفيديو وصوتياته من الرابط..."):
+            try:
+                # إعدادات جلب الصوت فقط من الرابط بدون تحميل الفيديو كاملاً لتوفير الوقت والذاكرة
+                ydl_opts = {
+                    'format': 'bestaudio/best',
+                    'outtmpl': '-',
+                    'logtostderr': True,
+                    'quiet': True,
+                }
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(video_url, download=False)
+                    # جلب رابط الصوت المباشر
+                    audio_url = info['url']
+                    
+                    # قراءة الصوت في الذاكرة
+                    import requests
+                    response = requests.get(audio_url, stream=True)
+                    audio_data = io.BytesIO()
+                    for chunk in response.iter_content(chunk_size=1024*1024):
+                        if chunk:
+                            audio_data.write(chunk)
+                    audio_data.seek(0)
+                    audio_buffer = audio_data
+                    audio_buffer.name = "online_audio.mp3"
+                    file_name = info.get('title', 'رابط خارجي')
+            except Exception as e:
+                st.error(f"حدث خطأ أثناء جلب الفيديو من الرابط: {str(e)}")
+
+# --- عملية المعالجة والتلخيص المستقرة ---
+if audio_buffer:
     if not MY_API_KEY or MY_API_KEY == "sk-dummy":
-        st.error("❌ لا يمكن معالجة الملف؛ يرجى إضافة مفتاح OpenAI الصحيح في إعدادات الـ Secrets أولاً.")
+        st.error("❌ لا يمكن المعالجة؛ يرجى إضافة مفتاح OpenAI في الـ Secrets أولاً.")
     else:
         try:
-            # قراءة الصوت مباشرة في الذاكرة كبيانات ثنائية خالص بدون مسارات
-            audio_bytes = audio_file.read()
-            buffer = io.BytesIO(audio_bytes)
-            buffer.name = "audio.mp3" 
-
-            with st.spinner("جاري رفع الصوت وتحليله..."):
+            st.info(f"🎬 تم تجهيز: {file_name}")
+            
+            with st.spinner("جاري معالجة الصوت وتحويله إلى نص (Whisper)..."):
                 transcript = client.audio.transcriptions.create(
                     model="whisper-1",
-                    file=buffer
+                    file=audio_buffer
                 )
 
             text_result = transcript.text
 
-            st.subheader("النص الكامل (Transcript)")
+            st.subheader("📝 النص الكامل المُستخرج:")
             st.text_area("Text", text_result, height=200)
 
-            with st.spinner("جاري التلخيص..."):
+            with st.spinner("جاري كتابة التلخيص الذكي..."):
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
@@ -62,8 +103,8 @@ if audio_file:
                 )
 
             summary_text = response.choices[0].message.content
-            st.subheader("التلخيص (Summary)")
+            st.subheader("📌 التلخيص الشامل:")
             st.write(summary_text)
 
         except Exception as e:
-            st.error(f"حدث خطأ أثناء المعالجة: {str(e)}")
+            st.error(f"حدث خطأ أثناء المعالجة والتلخيص: {str(e)}")
