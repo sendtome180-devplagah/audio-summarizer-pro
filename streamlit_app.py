@@ -99,7 +99,7 @@ st.markdown("""
         border-radius: 10px;
         padding: 20px;
         margin-top: 15px;
-        box-shadow: 0 4px 12 rgba(0,0,0,0.05);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         color: #1e293b !important;
         font-size: 1.1rem;
         line-height: 1.8;
@@ -122,10 +122,10 @@ st.markdown("""
 
 # --- 👑 واجهة المستخدم الرسومية الفخمة ---
 st.markdown('<h1 class="main-title">🎙️🎬 منصة التلخيص الذكي والتحليل الصوتي</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">تتيح هذه المنصة لرفع الملفات الصوتية (MP3) والمرئية (MP4) وتلخيصها فوراً بلمسات جمالية مريحة.</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">تتيح هذه المنصة رفع الملفات الصوتية (MP3) والمرئية (MP4) وتلخيصها فوراً بلمسات جمالية مريحة.</p>', unsafe_allow_html=True)
 
-# 🏷️ إضافة بصمة تصميم الأستاذ عبد الله بن علي المطرفي بشكل أنيق ومتناسق
-st.markdown('<div class="designer-signature">👨‍برمجة وتصميم: أ/ عبد الله بن علي المطرفي</div>', unsafe_allow_html=True)
+# 🏷️ إضافة بصمة تصميم الأستاذ عبد الله بن علي المطرفي
+st.markdown('<div class="designer-signature">👨‍💻 برمجة وتصميم: أ/ عبد الله بن علي المطرفي</div>', unsafe_allow_html=True)
 
 # خانة الرفع الأنيقة
 uploaded_file = st.file_uploader(
@@ -168,4 +168,12 @@ if uploaded_file:
                     )
                 
                 summary_text = response.choices[0].message.content
-                st.
+                st.subheader("📌 التلخيص الشامل والفوائد المستخرجة:")
+                
+                # وضع التلخيص داخل حاوية بيضاء أنيقة مع نص داكن وواضح 100%
+                st.markdown(f'<div class="summary-card">{summary_text}</div>', unsafe_allow_html=True)
+            else:
+                st.warning("⚠️ لم نتمكن من استخراج أي نص، تأكد من أن الملف يحتوي على صوت واضح ومفهوم.")
+                
+        except Exception as e:
+            st.error(f"❌ حدث خطأ أثناء المعالجة والتلخيص: {str(e)}")
