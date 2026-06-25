@@ -2,12 +2,13 @@ import os
 import sys
 import re
 
-# عزل النظام
+# عزل النظام لضمان اللغة العربية
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
 import streamlit as st
 from openai import OpenAI
 import io
+import requests
 
 try:
     import yt_dlp
@@ -15,11 +16,12 @@ try:
 except ImportError:
     st.error("يرجى التأكد من تحديث ملف requirements.txt")
 
+# جلب المفتاح السري
 MY_API_KEY = st.secrets.get("OPENAI_API_KEY", "")
 client = OpenAI(api_key=MY_API_KEY if MY_API_KEY else "sk-dummy")
 
 st.title("📹 Video & YouTube Summarizer")
-st.write("أهلاً بك يا بروفيسور! يمكنك رفع ملف MP4 أو وضع رابط يوتيوب لتلخيصه مباشرة.")
+st.write("أهلاً بك يا بروفيسور! هنا الحل الأكيد والنهائي لتلخيص الفيديوهات وروابط اليوتيوب.")
 
 option = st.radio("اختر طريقة إدخال الفيديو:", ("وضع رابط فيديو (YouTube / URL)", "رفع ملف فيديو (MP4)"))
 
@@ -31,15 +33,15 @@ def get_youtube_id(url):
     match = re.search(pattern, url)
     return match.group(1) if match else None
 
-# --- الخيار الأول: رابط يوتيوب معالجة صوتية متطورة ---
+# --- الخيار الأول: رابط يوتيوب بالأمر المباشر ---
 if option == "وضع رابط فيديو (YouTube / URL)":
     video_url = st.text_input("أدخل رابط فيديو اليوتيوب هنا:")
     if video_url:
         video_id = get_youtube_id(video_url)
         
-        # 1. المحاولة الأولى: سحب النص المكتوب الجاهز
+        # المرحلة 1: جلب النص التلقائي لو وجد (فوري وسريع)
         if video_id:
-            with st.spinner("⏳ جاري فحص النص التلقائي لليوتيوب..."):
+            with st.spinner("⏳ جاري فحص النصوص البرمجية للفيديو..."):
                 try:
                     try:
                         transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['ar', 'en'])
@@ -51,42 +53,32 @@ if option == "وضع رابط فيديو (YouTube / URL)":
                 except:
                     pass
 
-        # 2. المحاولة الثانية: سحب الصوت وتحويله برمجياً بالكامل إلى صيغة قياسية خفيفة
+        # المرحلة 2: اقتناص رابط الـ m4a الخام مباشرة وإرساله لـ OpenAI
         if not text_to_summarize:
-            st.info("💡 الفيديو لا يحتوي على نص جاهز. جاري الآن سحب الصوت وتحويله لصيغة متوافقة...")
-            with st.spinner("🎬 جاري معالجة الصوت بأسلوب متطور وتجهيزه للتلخيص..."):
+            with st.spinner("🎬 جاري استخلاص الصوت الخام بنجاح والتحويل لـ Whisper..."):
                 try:
-                    # إعدادات صارمة لاستخراج صوت صافي وتحويل الحاويات البرمجية بالكامل
+                    # إعدادات جلب خفيفة جداً ومباشرة لصوت m4a مدعوم 100%
                     ydl_opts = {
-                        'format': 'waft/bestaudio/best', # طلب صيغة صوت أساسية خفيفة
-                        'outtmpl': '-',
+                        'format': 'bestaudio[ext=m4a]/bestaudio', 
                         'quiet': True,
-                        'nonplaylist': True,
-                        'prefer_ffmpeg': False
+                        'no_warnings': True,
+                        'nonplaylist': True
                     }
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(video_url, download=False)
                         audio_url = info['url']
                         
-                        import requests
-                        res = requests.get(audio_url, stream=True)
-                        audio_data = io.BytesIO()
+                        # تحميل الملف مباشرة إلى الذاكرة كملف m4a صافي
+                        res = requests.get(audio_url)
+                        audio_data = io.BytesIO(res.content)
+                        audio_data.name = "audio.m4a" # الصيغة الذهبية المدعومة في OpenAI
                         
-                        # قراءة وحفظ البيانات بكتل صغيرة لضمان سلامة الملف
-                        for chunk in res.iter_content(chunk_size=512*1024):
-                            if chunk:
-                                audio_data.write(chunk)
-                        audio_data.seek(0)
-                        
-                        # إجبار النظام على التعامل معه كملف wav متوافق وعام
-                        audio_data.name = "audio.wav"
-                        
-                        with st.spinner("⏳ جاري تفكيك الصوت المستخرج الآن وتحويله لنص..."):
-                            trans = client.audio.transcriptions.create(model="whisper-1", file=audio_data)
-                            text_to_summarize = trans.text
-                            file_name = info.get('title', 'فيديو يوتيوب صوتي')
+                        # إرسال الملف فوراً للتفكيك
+                        trans = client.audio.transcriptions.create(model="whisper-1", file=audio_data)
+                        text_to_summarize = trans.text
+                        file_name = info.get('title', 'صوت يوتيوب مستخلص')
                 except Exception as err:
-                    st.error(f"حدث خطأ أثناء معالجة الصوت من الرابط: {str(err)}")
+                    st.error(f"خطأ في معالجة خادم يوتيوب: {str(err)}")
 
 # --- الخيار الثاني: رفع ملف MP4 عادي ---
 elif option == "رفع ملف فيديو (MP4)":
@@ -94,8 +86,7 @@ elif option == "رفع ملف فيديو (MP4)":
     if video_file:
         audio_buffer = io.BytesIO(video_file.read())
         audio_buffer.name = "video.mp4"
-        file_name = video_file.name
-        with st.spinner("جاري تفكيك صوت ملف الـ MP4 واستخراج النص..."):
+        with st.spinner("جاري تفكيك صوت ملف الـ MP4..."):
             try:
                 trans = client.audio.transcriptions.create(model="whisper-1", file=audio_buffer)
                 text_to_summarize = trans.text
@@ -108,11 +99,11 @@ if text_to_summarize:
         st.error("❌ يرجى إضافة مفتاح OpenAI في الـ Secrets أولاً.")
     else:
         try:
-            st.success(f"✅ تم تجهيز واستخراج النص بنجاح!")
+            st.success("✅ تم تجهيز النص بنجاح!")
             st.subheader("📝 النص الكامل المُستخرج:")
             st.text_area("النص", text_to_summarize, height=200)
 
-            with st.spinner("جاري كتابة التلخيص الذكي في نقاط واضحة..."):
+            with st.spinner("جاري كتابة التلخيص الذكي لطلابك..."):
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
@@ -120,7 +111,7 @@ if text_to_summarize:
                         {"role": "user", "content": text_to_summarize}
                     ]
                 )
-            st.subheader("📌 التلخيص الشامل لطلابك:")
+            st.subheader("📌 التلخيص الشامل:")
             st.write(response.choices[0].message.content)
         except Exception as e:
             st.error(f"حدث خطأ أثناء التلخيص: {str(e)}")
