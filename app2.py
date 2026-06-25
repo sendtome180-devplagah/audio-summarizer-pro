@@ -8,14 +8,18 @@ import streamlit as st
 from openai import OpenAI
 import io
 
-# ضع مفتاحك هنا مباشرة بين علامتي التنصيص بدلاً من ملف .env
-# تأكد من نسخه كاملاً كما هو وبدون أي مسافات قبل أو بعد
-# احذف الأسطر القديمة وضَعْ هذه الأسطر بدلاً منها:
+# محاولة قراءة المفتاح من الإعدادات السرية بأكثر من طريقة لضمان التوافق
 if "OPENAI_API_KEY" in st.secrets:
     MY_API_KEY = st.secrets["OPENAI_API_KEY"]
+elif "openai_api_key" in st.secrets:
+    MY_API_KEY = st.secrets["openai_api_key"]
 else:
+    # إذا لم يجد المفتاح في الـ Secrets، سيبحث في السطر الأسفل (إذا أردت وضعه يدوياً مستقبلاً بشكل آمن)
     MY_API_KEY = ""
-    st.error("الرجاء وضع مفتاح الـ API الصحيح داخل الكود أولاً!")
+
+# التحقق من وجود المفتاح قبل تشغيل العميل لئلا تظهر الشاشة الزرقاء المزعجة للطلاب
+if not MY_API_KEY:
+    st.warning("⚙️ النظام في طور التجهيز خلف الكواليس، يرجى التحقق من إعدادات الـ Secrets في منصة Streamlit.")
     st.stop()
 
 # ربط العميل بالمفتاح المباشر
