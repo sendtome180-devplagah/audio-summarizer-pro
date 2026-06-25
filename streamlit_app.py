@@ -64,14 +64,28 @@ st.markdown("""
         box-shadow: 0 6px 20px rgba(42, 82, 152, 0.15);
     }
     
-    /* تصميم صناديق النصوص المستخرجة والتلخيص */
+    /* 🔥 الحل السحري: تصميم صندوق النص المستخرج بخلفية كحلية داكنة ونص أبيض واضح جداً */
     .stTextArea textarea {
         border-radius: 12px !important;
-        border: 1px solid #cbd5e1 !important;
-        font-size: 1.05rem !important;
-        line-height: 1.6 !important;
-        background-color: #ffffff !important;
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02) !important;
+        border: 2px solid #1e3c72 !important;
+        font-size: 1.1rem !important;
+        line-height: 1.7 !important;
+        background-color: #0f172a !important; /* خلفية داكنة جداً الفاخرة */
+        color: #ffffff !important;           /* نص أبيض ناصع وثابت */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important;
+    }
+    
+    /* 🔥 تصميم منطقة التلخيص النهائي لتظهر داخل بطاقة بيضاء فخمة بنص داكن مقروء */
+    .summary-card {
+        background-color: #ffffff;
+        border-right: 5px solid #2a5298;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 15px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        color: #1e293b !important; /* نص رمادي داكن يقفل على الأبيض */
+        font-size: 1.1rem;
+        line-height: 1.8;
     }
     
     /* تنسيق العناوين الجانبية */
@@ -83,7 +97,7 @@ st.markdown("""
         margin-top: 25px !important;
     }
     
-    /* إخفاء شريط المساعدة الافتراضي الصغير لـ Streamlit لتنظيف الواجهة */
+    /* إخفاء شريط المساعدة الافتراضي */
     footer {visibility: hidden;}
     header {visibility: hidden;}
     </style>
@@ -135,7 +149,9 @@ if uploaded_file:
                 
                 summary_text = response.choices[0].message.content
                 st.subheader("📌 التلخيص الشامل والفوائد المستخرجة:")
-                st.markdown(summary_text)
+                
+                # وضع التلخيص داخل حاوية كرتونية بيضاء أنيقة مع نص داكن وواضح 100%
+                st.markdown(f'<div class="summary-card">{summary_text}</div>', unsafe_allow_html=True)
             else:
                 st.warning("⚠️ لم نتمكن من استخراج أي نص، تأكد من أن الملف يحتوي على صوت واضح ومفهوم.")
                 
