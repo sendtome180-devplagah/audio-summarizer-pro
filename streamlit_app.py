@@ -47,7 +47,24 @@ st.markdown("""
         color: #556080;
         font-size: 1.1rem;
         text-align: center !important;
-        margin-bottom: 30px;
+        margin-bottom: 15px;
+    }
+
+    /* تنسيق بصمة الاسم للبروفيسور */
+    .designer-signature {
+        color: #1e3c72;
+        font-size: 1.2rem;
+        font-weight: 700;
+        text-align: center !important;
+        margin-bottom: 35px;
+        background: #ffffff;
+        padding: 8px 20px;
+        border-radius: 20px;
+        display: table;
+        margin-right: auto;
+        margin-left: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        border: 1px solid #cbd5e1;
     }
     
     /* تصميم بطاقة رفع الملفات (File Uploader) */
@@ -64,26 +81,26 @@ st.markdown("""
         box-shadow: 0 6px 20px rgba(42, 82, 152, 0.15);
     }
     
-    /* 🔥 الحل السحري: تصميم صندوق النص المستخرج بخلفية كحلية داكنة ونص أبيض واضح جداً */
+    /* تصميم صندوق النص المستخرج بخلفية كحلية داكنة ونص أبيض واضح جداً */
     .stTextArea textarea {
         border-radius: 12px !important;
         border: 2px solid #1e3c72 !important;
         font-size: 1.1rem !important;
         line-height: 1.7 !important;
-        background-color: #0f172a !important; /* خلفية داكنة جداً الفاخرة */
-        color: #ffffff !important;           /* نص أبيض ناصع وثابت */
+        background-color: #0f172a !important;
+        color: #ffffff !important;
         box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important;
     }
     
-    /* 🔥 تصميم منطقة التلخيص النهائي لتظهر داخل بطاقة بيضاء فخمة بنص داكن مقروء */
+    /* تصميم منطقة التلخيص النهائي لتظهر داخل بطاقة بيضاء فخمة بنص داكن مقروء */
     .summary-card {
         background-color: #ffffff;
         border-right: 5px solid #2a5298;
         border-radius: 10px;
         padding: 20px;
         margin-top: 15px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        color: #1e293b !important; /* نص رمادي داكن يقفل على الأبيض */
+        box-shadow: 0 4px 12 rgba(0,0,0,0.05);
+        color: #1e293b !important;
         font-size: 1.1rem;
         line-height: 1.8;
     }
@@ -105,7 +122,10 @@ st.markdown("""
 
 # --- 👑 واجهة المستخدم الرسومية الفخمة ---
 st.markdown('<h1 class="main-title">🎙️🎬 منصة التلخيص الذكي والتحليل الصوتي</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">أهلاً بك يا بروفيسور! تتيح هذه المنصة لطلابك رفع الملفات الصوتية (MP3) والمرئية (MP4) لتلخيصها فوراً بلمسات جمالية مريحة.</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">تتيح هذه المنصة لرفع الملفات الصوتية (MP3) والمرئية (MP4) وتلخيصها فوراً بلمسات جمالية مريحة.</p>', unsafe_allow_html=True)
+
+# 🏷️ إضافة بصمة تصميم الأستاذ عبد الله بن علي المطرفي بشكل أنيق ومتناسق
+st.markdown('<div class="designer-signature">👨‍برمجة وتصميم: أ/ عبد الله بن علي المطرفي</div>', unsafe_allow_html=True)
 
 # خانة الرفع الأنيقة
 uploaded_file = st.file_uploader(
@@ -148,12 +168,4 @@ if uploaded_file:
                     )
                 
                 summary_text = response.choices[0].message.content
-                st.subheader("📌 التلخيص الشامل والفوائد المستخرجة:")
-                
-                # وضع التلخيص داخل حاوية كرتونية بيضاء أنيقة مع نص داكن وواضح 100%
-                st.markdown(f'<div class="summary-card">{summary_text}</div>', unsafe_allow_html=True)
-            else:
-                st.warning("⚠️ لم نتمكن من استخراج أي نص، تأكد من أن الملف يحتوي على صوت واضح ومفهوم.")
-                
-        except Exception as e:
-            st.error(f"❌ حدث خطأ أثناء المعالجة والتلخيص: {str(e)}")
+                st.
