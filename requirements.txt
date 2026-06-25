@@ -1,5 +1,2 @@
 streamlit
 openai
-yt-dlp
-requests
-youtube-transcript-api
