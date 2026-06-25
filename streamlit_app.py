@@ -87,7 +87,7 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
     </style>
-""", unsafe_allow_index=True)
+""", unsafe_allow_html=True)
 
 # --- 👑 واجهة المستخدم الرسومية الفخمة ---
 st.markdown('<h1 class="main-title">🎙️🎬 منصة التلخيص الذكي والتحليل الصوتي</h1>', unsafe_allow_html=True)
