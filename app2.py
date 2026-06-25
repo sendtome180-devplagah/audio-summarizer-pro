@@ -10,8 +10,11 @@ import io
 
 # ضع مفتاحك هنا مباشرة بين علامتي التنصيص بدلاً من ملف .env
 # تأكد من نسخه كاملاً كما هو وبدون أي مسافات قبل أو بعد
-MY_API_KEY = "ضع المفتاح هنا"
-if not MY_API_KEY or "هنا_" in MY_API_KEY:
+# احذف الأسطر القديمة وضَعْ هذه الأسطر بدلاً منها:
+if "OPENAI_API_KEY" in st.secrets:
+    MY_API_KEY = st.secrets["OPENAI_API_KEY"]
+else:
+    MY_API_KEY = ""
     st.error("الرجاء وضع مفتاح الـ API الصحيح داخل الكود أولاً!")
     st.stop()
 
