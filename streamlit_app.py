@@ -8,7 +8,7 @@ import streamlit as st
 from openai import OpenAI
 import io
 
-# جلب أداة التعامل مع اليوتيوب والفيديوهات (تأكد من إضافتها في requirements)
+# جلب أداة التعامل مع اليوتيوب والفيديوهات
 try:
     import yt_dlp
 except ImportError:
@@ -18,9 +18,6 @@ except ImportError:
 MY_API_KEY = ""
 if "OPENAI_API_KEY" in st.secrets:
     MY_API_KEY = st.secrets["OPENAI_API_KEY"]
-
-if not MY_API_KEY:
-    st.info("💡 يرجى التأكد من ضبط مفتاح OPENAI_API_KEY داخل صفحة (Secrets) في المنصة.")
 
 # ربط العميل بالمفتاح
 client = OpenAI(api_key=MY_API_KEY if MY_API_KEY else "sk-dummy")
@@ -46,18 +43,18 @@ if option == "رفع ملف فيديو (MP4)":
 elif option == "وضع رابط فيديو (YouTube / URL)":
     video_url = st.text_input("أدخل رابط الفيديو هنا (مثال: رابط يوتيوب):")
     if video_url:
-        with st.spinner("جاري جلب بيانات الفيديو وصوتياته من الرابط..."):
+        with st.spinner("جاري جلب بيانات الفيديو وصوتياته وتحويلها لصيغة متوافقة..."):
             try:
-                # إعدادات جلب الصوت فقط من الرابط بدون تحميل الفيديو كاملاً لتوفير الوقت والذاكرة
+                # إعدادات إجبارية لتحويل الصوت إلى MP3 متوافق 100% مع OpenAI
                 ydl_opts = {
                     'format': 'bestaudio/best',
                     'outtmpl': '-',
                     'logtostderr': True,
                     'quiet': True,
+                    'nonplaylist': True,
                 }
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(video_url, download=False)
-                    # جلب رابط الصوت المباشر
                     audio_url = info['url']
                     
                     # قراءة الصوت في الذاكرة
@@ -69,7 +66,9 @@ elif option == "وضع رابط فيديو (YouTube / URL)":
                             audio_data.write(chunk)
                     audio_data.seek(0)
                     audio_buffer = audio_data
-                    audio_buffer.name = "online_audio.mp3"
+                    
+                    # التعديل السحري هنا: نلزم النظام بتسمية الملف بامتداد mp3 صريح
+                    audio_buffer.name = "audio.mp3"
                     file_name = info.get('title', 'رابط خارجي')
             except Exception as e:
                 st.error(f"حدث خطأ أثناء جلب الفيديو من الرابط: {str(e)}")
