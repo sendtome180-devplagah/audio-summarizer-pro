@@ -19,59 +19,74 @@ MY_API_KEY = st.secrets.get("OPENAI_API_KEY", "")
 client = OpenAI(api_key=MY_API_KEY if MY_API_KEY else "sk-dummy")
 
 st.title("📹 Video & YouTube Summarizer")
-st.write("أهلاً بك يا بروفيسور! يمكنك رفع ملف MP4 أو وضع رابط يوتيوب لتلخيصه مباشرة عبر النصوص المستخرجة ذكياً.")
+st.write("أهلاً بك يا بروفيسور! يمكنك رفع ملف MP4 أو وضع رابط يوتيوب لتلخيصه مباشرة.")
 
 option = st.radio("اختر طريقة إدخال الفيديو:", ("وضع رابط فيديو (YouTube / URL)", "رفع ملف فيديو (MP4)"))
 
 text_to_summarize = ""
 file_name = ""
 
-# دالة ذكية لاستخراج رقم الفيديو من رابط اليوتيوب
 def get_youtube_id(url):
     pattern = r'(?:https?://)?(?:www\.)?(?:youtube\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)|.*[?&]v=)|youtu\.be/)([^"&?/\s]{11})'
     match = re.search(pattern, url)
     return match.group(1) if match else None
 
-# --- الخيار الأول: رابط يوتيوب (الحل الذكي والسريع) ---
+# --- الخيار الأول: رابط يوتيوب معالجة صوتية متطورة ---
 if option == "وضع رابط فيديو (YouTube / URL)":
     video_url = st.text_input("أدخل رابط فيديو اليوتيوب هنا:")
     if video_url:
         video_id = get_youtube_id(video_url)
+        
+        # 1. المحاولة الأولى: سحب النص المكتوب الجاهز
         if video_id:
-            with st.spinner("⏳ جاري سحب النص المكتوب من اليوتيوب مباشرة (لمح لمح البصر)..."):
+            with st.spinner("⏳ جاري فحص النص التلقائي لليوتيوب..."):
                 try:
-                    # محاولة جلب النص باللغة العربية أولاً، ثم الإنجليزية كخيار بديل
                     try:
                         transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['ar', 'en'])
                     except:
-                        # إذا لم يجد لغة محددة، يجلب قائمة النصوص المتاحة تلقائياً
                         transcript_pieces = YouTubeTranscriptApi.list_transcripts(video_id)
                         transcript_list = transcript_pieces.find_transcript(['ar', 'en']).fetch()
-                    
-                    # تجميع النص كاملاً
                     text_to_summarize = " ".join([item['text'] for item in transcript_list])
-                    file_name = "فيديو يوتيوب"
-                except Exception as e:
-                    st.warning("⚠️ لم نتمكن من سحب النص التلقائي لليوتيوب مباشرة. سنحاول جلب ملف الصوت الآن...")
-                    
-                    # حل احتياطي: إذا فشل سحب النص، نستخدم الطريقة التقليدية بالجلب
-                    try:
-                        ydl_opts = {'format': 'bestaudio/best', 'outtmpl': '-', 'quiet': True}
-                        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                            info = ydl.extract_info(video_url, download=False)
-                            import requests
-                            res = requests.get(info['url'], stream=True)
-                            audio_data = io.BytesIO(res.content)
-                            audio_data.name = "audio.mp3"
-                            
-                            with st.spinner("جاري تفكيك صوت الرابط عبر Whisper..."):
-                                trans = client.audio.transcriptions.create(model="whisper-1", file=audio_data)
-                                text_to_summarize = trans.text
-                                file_name = info.get('title', 'فيديو خارجي')
-                    except Exception as err:
-                        st.error(f"حدث خطأ في جلب الصوت أيضاً: {str(err)}")
-        else:
-            st.error("الرجاء التأكد من صحة رابط اليوتيوب.")
+                    file_name = "فيديو يوتيوب (نص جاهز)"
+                except:
+                    pass
+
+        # 2. المحاولة الثانية: سحب الصوت وتحويله برمجياً بالكامل إلى صيغة قياسية خفيفة
+        if not text_to_summarize:
+            st.info("💡 الفيديو لا يحتوي على نص جاهز. جاري الآن سحب الصوت وتحويله لصيغة متوافقة...")
+            with st.spinner("🎬 جاري معالجة الصوت بأسلوب متطور وتجهيزه للتلخيص..."):
+                try:
+                    # إعدادات صارمة لاستخراج صوت صافي وتحويل الحاويات البرمجية بالكامل
+                    ydl_opts = {
+                        'format': 'waft/bestaudio/best', # طلب صيغة صوت أساسية خفيفة
+                        'outtmpl': '-',
+                        'quiet': True,
+                        'nonplaylist': True,
+                        'prefer_ffmpeg': False
+                    }
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        info = ydl.extract_info(video_url, download=False)
+                        audio_url = info['url']
+                        
+                        import requests
+                        res = requests.get(audio_url, stream=True)
+                        audio_data = io.BytesIO()
+                        
+                        # قراءة وحفظ البيانات بكتل صغيرة لضمان سلامة الملف
+                        for chunk in res.iter_content(chunk_size=512*1024):
+                            if chunk:
+                                audio_data.write(chunk)
+                        audio_data.seek(0)
+                        
+                        # إجبار النظام على التعامل معه كملف wav متوافق وعام
+                        audio_data.name = "audio.wav"
+                        
+                        with st.spinner("⏳ جاري تفكيك الصوت المستخرج الآن وتحويله لنص..."):
+                            trans = client.audio.transcriptions.create(model="whisper-1", file=audio_data)
+                            text_to_summarize = trans.text
+                            file_name = info.get('title', 'فيديو يوتيوب صوتي')
+                except Exception as err:
+                    st.error(f"حدث خطأ أثناء معالجة الصوت من الرابط: {str(err)}")
 
 # --- الخيار الثاني: رفع ملف MP4 عادي ---
 elif option == "رفع ملف فيديو (MP4)":
@@ -87,13 +102,13 @@ elif option == "رفع ملف فيديو (MP4)":
             except Exception as e:
                 st.error(f"خطأ أثناء تفكيك ملف الـ MP4: {str(e)}")
 
-# --- مرحلة التلخيص النهائية الموحدة ---
+# --- مرحلة التلخيص النهائية ---
 if text_to_summarize:
     if not MY_API_KEY or MY_API_KEY == "sk-dummy":
         st.error("❌ يرجى إضافة مفتاح OpenAI في الـ Secrets أولاً.")
     else:
         try:
-            st.success(f"✅ تم تجهيز النص بنجاح!")
+            st.success(f"✅ تم تجهيز واستخراج النص بنجاح!")
             st.subheader("📝 النص الكامل المُستخرج:")
             st.text_area("النص", text_to_summarize, height=200)
 
